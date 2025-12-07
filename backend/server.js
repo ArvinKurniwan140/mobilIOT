@@ -28,7 +28,7 @@ app.use(express.json());
 const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
   port: process.env.DB_PORT || 5432,
-  database: process.env.DB_NAME || 'mobilIOT_db',
+  database: process.env.DB_NAME || 'mobilIOT',
   user: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || 'Password'
 });
@@ -43,16 +43,41 @@ pool.query('SELECT NOW()', (err, res) => {
 });
 
 // MQTT Client
-const mqttClient = mqtt.connect(process.env.MQTT_BROKER || 'mqtt://localhost:1883');
+const mqttOptions = {
+  username: process.env.MQTT_USERNAME || 'mobilIOT',
+  password: process.env.MQTT_PASSWORD || 'Password07',
+  clean: true,
+  reconnectPeriod: 5000,
+  connectTimeout: 30000
+};
+
+const mqttClient = mqtt.connect(
+  process.env.MQTT_BROKER || 'mqtt://localhost:1883',
+  mqttOptions
+);
 
 mqttClient.on('connect', () => {
-  console.log('✅ MQTT Broker connected');
+  console.log('✅ MQTT Broker connected (HiveMQ Cloud)');
+  console.log(`📡 Broker: ${process.env.MQTT_BROKER}`);
+  console.log(`👤 User: ${process.env.MQTT_USERNAME}`);
   mqttClient.subscribe('autodrive/telemetry/1');
   mqttClient.subscribe('autodrive/status/1');
 });
 
 mqttClient.on('error', (error) => {
   console.error('❌ MQTT connection error:', error.message);
+  console.log('Check:');
+  console.log('1. HiveMQ cluster is running');
+  console.log('2. Credentials are correct');
+  console.log('3. Internet connection OK');
+});
+
+mqttClient.on('reconnect', () => {
+  console.log('🔄 MQTT reconnecting to cloud...');
+});
+
+mqttClient.on('close', () => {
+  console.log('🔌 MQTT disconnected from cloud');
 });
 
 // ========================================
